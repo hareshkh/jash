@@ -1,20 +1,28 @@
 import os
 import sys
 import shlex
+from jash.constants import *
+from jash.inbuilt import *
 
-SHELL_STATUS_RUN = 1
-SHELL_STATUS_STOP = 0
+commands = {}
 
 def tokenize(string):
 	return shlex.split(string)
 
-def execute(cmd_tokens):
+def execute(tokens):
+	cmd_name = tokens[0]
+	cmd_args = tokens[1:]
+
+	# If the command is a built-in command, invoke its function with arguments
+	if cmd_name in commands:
+		return commands[cmd_name](cmd_args)
+
 	pid = os.fork()
 
 	if pid == 0:
 	# Child process
 		# Replace the child shell process with the program called with exec
-		os.execvp(cmd_tokens[0], cmd_tokens)
+		os.execvp(tokens[0], tokens)
 	elif pid > 0:
 	# Parent process
 		while True:
@@ -39,11 +47,18 @@ def shell_loop():
 
 		# Tokenize the command input
 		# string.split() not used due to problem with string type arguments like ' echo "Hello World" '
-		cmd_tokens = tokenize(cmd)
+		tokens = tokenize(cmd)
 
-		status = execute(cmd_tokens)
+		status = execute(tokens)
+
+def register_command(name, func):
+	commands[name] = func
+
+def init():
+	register_command("cd", cd)
 
 def main():
+	init()
 	shell_loop()
 
 if __name__ == "__main__":
