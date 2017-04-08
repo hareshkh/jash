@@ -41,10 +41,6 @@ def tokenize(string):
     return shlex.split(string)
 
 
-def handler_kill(signum, frame):
-    raise OSError("Killed!")
-
-
 def display_prompt():
     # Get user and hostname
     user = getpass.getuser()
@@ -74,7 +70,7 @@ def execute(tokens, cmd, REDIR):
     if cmd_name in commands:
         return commands[cmd_name](cmd_args)
 
-    signal.signal(signal.SIGINT, handler_kill)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     # Spawn a child process
     if REDIR == 0:
         p = subprocess.Popen(tokens)
