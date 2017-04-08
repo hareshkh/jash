@@ -1,6 +1,8 @@
 import os
-import sys
 import shlex
+import signal
+import subprocess
+import sys
 from jash.constants import *
 from jash.inbuilt import *
 
@@ -18,7 +20,11 @@ def tokenize(string):
     return shlex.split(string)
 
 
-def execute(tokens, REDIR):
+def handler_kill(signum, frame):
+    raise OSError("Killed!")
+
+
+def execute(tokens, cmd, REDIR):
     cmd_name = tokens[0]
     cmd_args = tokens[1:]
 
@@ -26,22 +32,12 @@ def execute(tokens, REDIR):
     if cmd_name in commands:
         return commands[cmd_name](cmd_args)
 
-    pid = os.fork()
-
-    if pid == 0:
-        # Child process
-        # Replace the child shell process with the program called with exec
-        os.execvp(tokens[0], tokens)
-    elif pid > 0:
-        # Parent process
-        while True:
-            # Wait response status from its child process (identified with pid)
-            wpid, status = os.waitpid(pid, 0)
-
-            # Finish waiting if its child process exits normally
-            # or is terminated by a signal
-            if os.WIFEXITED(status) or os.WIFSIGNALED(status):
-                break
+    signal.signal(signal.SIGINT, handler_kill)
+    # Spawn a child process
+    p = subprocess.Popen(tokens)
+    # Parent process read data from child process
+    # and wait for child process to exit
+    p.communicate()
 
     return SHELL_STATUS_RUN
 
@@ -67,7 +63,7 @@ def shell_loop():
         else:
             REDIR = 0
 
-        status = execute(tokens, REDIR)
+        status = execute(tokens, cmd, REDIR)
 
 
 def register_command(name, func):
