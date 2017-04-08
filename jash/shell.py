@@ -19,14 +19,19 @@ REDIR = 0
 c = color()
 
 
+def ignore_signals():
+    # Ignore Ctrl-Z stop signal
+    signal.signal(signal.SIGTSTP, signal.SIG_IGN)
+    # Ignore Ctrl-C interrupt signal
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
 def tokenize(string):
     return shlex.split(string)
 
 
 def handler_kill(signum, frame):
     raise OSError("Killed!")
-
-# Display a command prompt as `[<user>@<hostname> <dir>]$ `
 
 
 def display_prompt():
@@ -76,6 +81,7 @@ def shell_loop():
 
     while status == SHELL_STATUS_RUN:
         display_prompt()
+        ignore_signals()
 
         cmd = sys.stdin.readline()
 
