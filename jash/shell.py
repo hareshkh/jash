@@ -1,6 +1,8 @@
 import os
+import getpass
 import shlex
 import signal
+import socket
 import subprocess
 import sys
 from jash.constants import *
@@ -10,9 +12,6 @@ from jash.inbuilt import *
 commands = {}
 
 # Stores I/O redirection status
-# normal - 0
-# >      - 1
-# <      - 2
 REDIR = 0
 
 
@@ -22,6 +21,27 @@ def tokenize(string):
 
 def handler_kill(signum, frame):
     raise OSError("Killed!")
+
+# Display a command prompt as `[<user>@<hostname> <dir>]$ `
+
+
+def display_prompt():
+    # Get user and hostname
+    user = getpass.getuser()
+    hostname = socket.gethostname()
+
+    # Get base directory (last part of the curent working directory path)
+    cwd = os.getcwd()
+    base_dir = os.path.basename(cwd)
+
+    # Use ~ instead if a user is at his/her home directory
+    home_dir = os.path.expanduser('~')
+    if cwd == home_dir:
+        base_dir = '~'
+
+    # Print out to console
+    sys.stdout.write("[%s@%s %s]$ " % (user, hostname, base_dir))
+    sys.stdout.flush()
 
 
 def execute(tokens, cmd, REDIR):
@@ -34,7 +54,10 @@ def execute(tokens, cmd, REDIR):
 
     signal.signal(signal.SIGINT, handler_kill)
     # Spawn a child process
-    p = subprocess.Popen(tokens)
+    if REDIR == 0:
+        p = subprocess.Popen(tokens)
+    else:
+        p = subprocess.Popen(cmd, shell=True)
     # Parent process read data from child process
     # and wait for child process to exit
     p.communicate()
@@ -46,8 +69,7 @@ def shell_loop():
     status = SHELL_STATUS_RUN
 
     while status == SHELL_STATUS_RUN:
-        sys.stdout.write('> ')
-        sys.stdout.flush()
+        display_prompt()
 
         cmd = sys.stdin.readline()
 
@@ -58,8 +80,14 @@ def shell_loop():
 
         if ">" in tokens:
             REDIR = 1
-        elif "<" in tokens:
+        elif ">>" in tokens:
             REDIR = 2
+        elif "<" in tokens:
+            REDIR = 3
+        elif "<<" in tokens:
+            REDIR = 4
+        elif "|" in tokens:
+            REDIR = 5
         else:
             REDIR = 0
 
