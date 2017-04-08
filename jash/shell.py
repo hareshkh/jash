@@ -26,6 +26,17 @@ def ignore_signals():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 
+def convert_env_var(tokens):
+    processed_token = []
+    for token in tokens:
+        # Convert $-prefixed token to value of an environment variable
+        if token.startswith('$'):
+            processed_token.append(os.getenv(token[1:]))
+        else:
+            processed_token.append(token)
+    return processed_token
+
+
 def tokenize(string):
     return shlex.split(string)
 
@@ -103,6 +114,7 @@ def shell_loop():
         else:
             REDIR = 0
 
+        tokens = convert_env_var(tokens)
         status = execute(tokens, cmd, REDIR)
 
 
