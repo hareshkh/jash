@@ -7,12 +7,16 @@ import subprocess
 import sys
 from jash.constants import *
 from jash.inbuilt import *
+from jash.helpers import *
 
 # Stores built in commands
 commands = {}
 
 # Stores I/O redirection status
 REDIR = 0
+
+# Sets the color
+c = color()
 
 
 def tokenize(string):
@@ -40,8 +44,10 @@ def display_prompt():
         base_dir = '~'
 
     # Print out to console
+    c.setc("green", True)
     sys.stdout.write("[%s@%s %s]$ " % (user, hostname, base_dir))
     sys.stdout.flush()
+    c.setc("default", False)
 
 
 def execute(tokens, cmd, REDIR):
