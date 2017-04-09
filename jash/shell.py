@@ -69,11 +69,15 @@ def handler_kill(signum, frame):
 def execute(tokens, cmd, REDIR):
     signal.signal(signal.SIGINT, handler_kill)
 
+    with open(HISTORY_PATH, 'a') as history:
+        history.write(' '.join(tokens) + os.linesep)
+
     if len(tokens) > 0:
         cmd_name = tokens[0]
         cmd_args = tokens[1:]
 
-        # If the command is a built-in command, invoke its function with arguments
+        # If the command is a built-in command, invoke its function with
+        # arguments
         if cmd_name in commands:
             return commands[cmd_name](cmd_args)
 
@@ -83,7 +87,8 @@ def execute(tokens, cmd, REDIR):
         else:
             p = subprocess.Popen(cmd, shell=True)
 
-        # Parent process read data from child process and waits for child process to exit
+        # Parent process read data from child process and waits for child
+        # process to exit
         p.communicate()
 
     return SHELL_STATUS_RUN
@@ -119,7 +124,7 @@ def shell_loop():
 
             tokens = convert_env_var(tokens)
             status = execute(tokens, cmd, REDIR)
-        except:
+        except BaseException:
             _, err, _ = sys.exc_info()
             print(err)
 
@@ -131,6 +136,7 @@ def register_command(name, func):
 def init():
     register_command("cd", cd)
     register_command("exit", exit)
+    register_command("history", history)
 
 
 def main():
