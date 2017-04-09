@@ -62,23 +62,29 @@ def display_prompt():
     c.setc("default", False)
 
 
+def handler_kill(signum, frame):
+    raise OSError("Killed!")
+
+
 def execute(tokens, cmd, REDIR):
-    cmd_name = tokens[0]
-    cmd_args = tokens[1:]
+    signal.signal(signal.SIGINT, handler_kill)
 
-    # If the command is a built-in command, invoke its function with arguments
-    if cmd_name in commands:
-        return commands[cmd_name](cmd_args)
+    if len(tokens) > 0:
+        cmd_name = tokens[0]
+        cmd_args = tokens[1:]
 
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-    # Spawn a child process
-    if REDIR == 0:
-        p = subprocess.Popen(tokens)
-    else:
-        p = subprocess.Popen(cmd, shell=True)
-    # Parent process read data from child process
-    # and wait for child process to exit
-    p.communicate()
+        # If the command is a built-in command, invoke its function with arguments
+        if cmd_name in commands:
+            return commands[cmd_name](cmd_args)
+
+        # Spawn a child process
+        if REDIR == 0:
+            p = subprocess.Popen(tokens)
+        else:
+            p = subprocess.Popen(cmd, shell=True)
+
+        # Parent process read data from child process and waits for child process to exit
+        p.communicate()
 
     return SHELL_STATUS_RUN
 
@@ -90,28 +96,32 @@ def shell_loop():
         display_prompt()
         ignore_signals()
 
-        cmd = sys.stdin.readline()
+        try:
+            cmd = sys.stdin.readline()
 
-        # Tokenize the command input
-        # string.split() not used due to problem with string type arguments
-        # like ' echo "Hello World" '
-        tokens = tokenize(cmd)
+            # Tokenize the command input
+            # string.split() not used due to problem with string type arguments
+            # like ' echo "Hello World" '
+            tokens = tokenize(cmd)
 
-        if ">" in tokens:
-            REDIR = 1
-        elif ">>" in tokens:
-            REDIR = 2
-        elif "<" in tokens:
-            REDIR = 3
-        elif "<<" in tokens:
-            REDIR = 4
-        elif "|" in tokens:
-            REDIR = 5
-        else:
-            REDIR = 0
+            if ">" in tokens:
+                REDIR = 1
+            elif ">>" in tokens:
+                REDIR = 2
+            elif "<" in tokens:
+                REDIR = 3
+            elif "<<" in tokens:
+                REDIR = 4
+            elif "|" in tokens:
+                REDIR = 5
+            else:
+                REDIR = 0
 
-        tokens = convert_env_var(tokens)
-        status = execute(tokens, cmd, REDIR)
+            tokens = convert_env_var(tokens)
+            status = execute(tokens, cmd, REDIR)
+        except:
+            _, err, _ = sys.exc_info()
+            print(err)
 
 
 def register_command(name, func):
