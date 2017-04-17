@@ -142,7 +142,3 @@ def init():
 def main():
     init()
     shell_loop()
-
-
-if __name__ == "__main__":
-    main()
